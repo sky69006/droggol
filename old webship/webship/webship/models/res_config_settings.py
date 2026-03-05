@@ -238,7 +238,7 @@ class ResConfigSettings(models.TransientModel):
             if p.location_id.df_is_webship_location == True or p.location_dest_id.df_is_webship_location:
                 p.ws_sync_picking()
             else:
-                p.write({'df_process_code','=','E'})
+                p.write({'df_process_code': 'E'})
 
     def ws_prod_to_ws(self):
         wsHandler = ws.WebShipHandler(self.webship_login, self.webship_password)

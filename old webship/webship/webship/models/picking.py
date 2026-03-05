@@ -337,30 +337,37 @@ class StockPicking(models.Model):
         wsHandler.set_env(self.env)
 
         for record in self:
-            if record.df_picking_id_webship != False:
-                wsOrder = wsHandler.fetchByKey('orders',record.df_picking_id_webship)
-                sEdited = wsOrder.get('data').get('edited')
-                if not sEdited:
-                    sEdited = wsOrder.get('data').get('created')
-                #print(sEdited)
-                #print(wsOrder)
-                if (
-                        (record.df_ws_lastChangeDate == False and sEdited is not None)
-                        or (record.df_ws_lastChangeDate != sEdited)
-                ):
-                    wsHandler.setPickingQuantities(record, wsOrder['data'])
-                    record.df_ws_lastChangeDate = sEdited
-            if record.df_po_id_webship != False:
-                wsOrder = wsHandler.fetchByKey('purchase-orders', record.df_po_id_webship)
-                sEdited = wsOrder.get('data').get('edited')
-                if not sEdited:
-                    sEdited = wsOrder.get('data').get('created')
-                if (
-                        (record.df_ws_lastChangeDate == False and sEdited is not None)
-                        or (record.df_ws_lastChangeDate != sEdited)
-                ):
-                    wsHandler.setPickingQuantities(record, wsOrder['data'])
-                    record.df_ws_lastChangeDate = sEdited
+            try:
+                if record.df_picking_id_webship != False:
+                    wsOrder = wsHandler.fetchByKey('orders', record.df_picking_id_webship)
+                    if not wsOrder or wsOrder.get('status') != 'success' or not wsOrder.get('data'):
+                        _logger.warning("Failed to fetch order data for picking %s (ws id: %s)", record.name, record.df_picking_id_webship)
+                        continue
+                    sEdited = wsOrder['data'].get('edited')
+                    if not sEdited:
+                        sEdited = wsOrder['data'].get('created')
+                    if (
+                            (record.df_ws_lastChangeDate == False and sEdited is not None)
+                            or (record.df_ws_lastChangeDate != sEdited)
+                    ):
+                        wsHandler.setPickingQuantities(record, wsOrder['data'])
+                        record.df_ws_lastChangeDate = sEdited
+                if record.df_po_id_webship != False:
+                    wsOrder = wsHandler.fetchByKey('purchase-orders', record.df_po_id_webship)
+                    if not wsOrder or wsOrder.get('status') != 'success' or not wsOrder.get('data'):
+                        _logger.warning("Failed to fetch PO data for picking %s (ws id: %s)", record.name, record.df_po_id_webship)
+                        continue
+                    sEdited = wsOrder['data'].get('edited')
+                    if not sEdited:
+                        sEdited = wsOrder['data'].get('created')
+                    if (
+                            (record.df_ws_lastChangeDate == False and sEdited is not None)
+                            or (record.df_ws_lastChangeDate != sEdited)
+                    ):
+                        wsHandler.setPickingQuantities(record, wsOrder['data'])
+                        record.df_ws_lastChangeDate = sEdited
+            except Exception:
+                _logger.exception("Error while fetching quantities for picking %s", record.name)
 
     def findProductsBySku(self):
         wsHandler = self.getHandler()

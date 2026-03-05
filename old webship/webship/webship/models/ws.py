@@ -183,8 +183,12 @@ class WebShipHandler:
         if sCreatedAfter:
             params['created_after'] = sCreatedAfter
 
-        # Construct URL for first request
-        url = f"{base_url}?{urlencode(params)}" if params else base_url
+        # Construct URL for first request, using & if URL already has query params
+        if params:
+            separator = '&' if '?' in base_url else '?'
+            url = f"{base_url}{separator}{urlencode(params)}"
+        else:
+            url = base_url
         print(url)
 
         # First page request
@@ -327,8 +331,8 @@ class WebShipHandler:
         for p in picking.move_ids:
             if p.product_id.df_product_do_not_send_webship == True or p.product_id.default_code == False:
                 continue
-            if p.product_id.code != False:
-                skus.append(p.product_id.code)
+            if p.product_id.default_code != False:
+                skus.append(p.product_id.default_code)
             if hasattr(p.product_id, "packaging_ids") and p.product_id.packaging_ids:
                 for i in p.product_id.packaging_ids:
                     if i.df_sku_webship != False:
