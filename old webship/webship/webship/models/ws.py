@@ -183,8 +183,12 @@ class WebShipHandler:
         if sCreatedAfter:
             params['created_after'] = sCreatedAfter
 
-        # Construct URL for first request
-        url = f"{base_url}?{urlencode(params)}" if params else base_url
+        # Construct URL for first request, using & if URL already has query params
+        if params:
+            separator = '&' if '?' in base_url else '?'
+            url = f"{base_url}{separator}{urlencode(params)}"
+        else:
+            url = base_url
         print(url)
 
         # First page request
