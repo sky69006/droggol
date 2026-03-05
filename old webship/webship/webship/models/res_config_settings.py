@@ -235,9 +235,13 @@ class ResConfigSettings(models.TransientModel):
 
     def ws_sync_all_pickings_statusP(self):
         for p in self.env['stock.picking'].search([('df_process_code','=','P')]):
-            if p.location_id.df_is_webship_location == True or p.location_dest_id.df_is_webship_location:
-                p.ws_sync_picking()
-            else:
+            try:
+                if p.location_id.df_is_webship_location == True or p.location_dest_id.df_is_webship_location:
+                    p.ws_sync_picking()
+                else:
+                    p.write({'df_process_code': 'E'})
+            except Exception:
+                _logger.exception("Error syncing picking %s (id: %s) to Webship", p.name, p.id)
                 p.write({'df_process_code': 'E'})
 
     def ws_prod_to_ws(self):

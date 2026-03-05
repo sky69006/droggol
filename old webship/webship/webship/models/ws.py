@@ -362,7 +362,11 @@ class WebShipHandler:
         print(allRecords)
         items = {}
 
-        totalCount = allRecords['totalCount']
+        if allRecords.get('status') == 'error':
+            _logger.warning('fetchAll returned error: %s', allRecords)
+            return {'error': 'API request failed: ' + str(allRecords.get('txt', 'Unknown error'))}
+
+        totalCount = allRecords.get('totalCount')
         if totalCount == None or int(totalCount) == 0:
             return {'error': 'Nothing is found.'}
 
