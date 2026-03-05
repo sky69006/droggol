@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_config_settings_view_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.hr.fleet</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="90"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app data-string="Webship" id="webship" string="Webship" name="webship">
+                        <block title="Login instellingen" id="ws_login_setting">
+                            <setting string="Login">
+                                <div class="text-muted content-group mt16">
+                                    <span>Key: </span>
+                                    <field name="webship_login" style="width: 320px" />
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>Secret: </span>
+                                    <field name="webship_password" style="width: 320px" password="True"/>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>Base Url: </span>
+                                    <field name="webship_url" style="width: 320px"/>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>App Url: </span>
+                                    <field name="webship_app_url" style="width: 320px"/>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                        <button string="Test connection" name="ws_test_verbinding" type="object" />
+                                </div>
+                            </setting>
+                        </block>
+                        <block title="Algemene instellingen" id="ws_algemene_instellingen">
+                            <setting string="Algemene instellingen">
+                                <group>
+                                    <field name="webship_order_available_condition"></field>
+                                    <field name="webship_sync_order"></field>
+                                    <field name="webship_auto_create_backorder"></field>
+                                    <field name="webship_default_status"></field>
+                                    <field name="webship_default_po_status"></field>
+                                    <field name="webship_default_brand"></field>
+                                    <field name="webship_default_shop"></field>
+                                    <p><button icon="oi-arrow-right" name="ws_fetch_companies_and_warehouses" type="object" string="Laad companies/brands/warehouses" class="btn-link"/></p>
+                                </group>
+                                <p>Companies, brands, warehouses dienen geladen te worden en zijn nodig voor het verwerken van orders.</p>
+                            </setting>
+                        </block>
+                        <block title="Synchronisatie" id="ws_synchr_block_id">
+                            <setting string="Synchronisatie">
+                                <p><button icon="oi-arrow-right" name="ws_import_stock" type="object" string="Stock opladen" class="btn-link"/></p>
+                                <p><button icon="oi-arrow-right" name="ws_sync_all_pickings_statusP" type="object" string="Manueel openstaande orders processen" class="btn-link"/></p>
+                               <p><button icon="oi-arrow-right" name="ws_sync_statusses_since_last" type="object" string="Order info ophalen" class="btn-link"/></p>
+                                 <span>Last date check status:</span><field name="webship_last_check_date_status" />
+                                <br />
+                                 <span>Last date check PO status:</span><field name="webship_last_check_po_date_status" />
+                            </setting>
+                        </block>
+                        <block title="Reporting" is="ws_report">
+                            <setting string="Reporting">
+                            <button name="download_ws_prod_vergelijk"
+                        string="Stock check producten"
+                        type="object"
+                        icon="oi-arrow-right"
+                        class="btn-link"/>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="webship_config_settings_action" model="ir.actions.act_window">
+            <field name="name">Settings</field>
+            <field name="res_model">res.config.settings</field>
+            <field name="view_mode">form</field>
+            <field name="target">current</field>
+            <field name="context">{'module' : 'webship', 'bin_size': False}</field>
+        </record>
+
+        <menuitem id="webship_config_settings_menu" name="Settings"
+            parent="webship.webship_root_menu" sequence="10"
+                  action="webship_config_settings_action"
+            groups="base.group_system"/>
+    </data>
+</odoo>
