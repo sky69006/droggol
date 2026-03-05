@@ -1,4 +1,4 @@
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode
 
 from odoo import models
 import time
@@ -110,7 +110,7 @@ class WebShipHandler:
         return sResult
 
     def fetchInventory(self):
-        sResult = self.fetchAll('inventory', 'low')
+        sResult = self.fetchAll('inventory', 'low', extra_params={'type': 'basic'})
 
         return sResult
 
@@ -165,7 +165,7 @@ class WebShipHandler:
     import requests
     from urllib.parse import urlencode
 
-    def fetchAll(self, sUrl, sDetail=None, sEditedAfter=None, sCreatedAfter=None):
+    def fetchAll(self, sUrl, sDetail=None, sEditedAfter=None, sCreatedAfter=None, extra_params=None):
         """
         Fetch all paginated data from the Webship API.
         Returns a dict of pages to remain compatible with existing code
@@ -182,13 +182,11 @@ class WebShipHandler:
             params['edited_after'] = sEditedAfter
         if sCreatedAfter:
             params['created_after'] = sCreatedAfter
+        if extra_params:
+            params.update(extra_params)
 
-        # Construct URL for first request, using & if URL already has query params
-        if params:
-            separator = '&' if '?' in base_url else '?'
-            url = f"{base_url}{separator}{urlencode(params)}"
-        else:
-            url = base_url
+        # Construct URL for first request
+        url = f"{base_url}?{urlencode(params)}" if params else base_url
         print(url)
 
         # First page request
@@ -305,7 +303,7 @@ class WebShipHandler:
 
         self.sleep()
 
-        url = self.baseUrl + 'products?sku=' + quote(str(skuNr), safe='')
+        url = self.baseUrl + 'products?sku=' + skuNr
 
         print(url)
 
@@ -331,8 +329,8 @@ class WebShipHandler:
         for p in picking.move_ids:
             if p.product_id.df_product_do_not_send_webship == True or p.product_id.default_code == False:
                 continue
-            if p.product_id.default_code != False:
-                skus.append(p.product_id.default_code)
+            if p.product_id.code != False:
+                skus.append(p.product_id.code)
             if hasattr(p.product_id, "packaging_ids") and p.product_id.packaging_ids:
                 for i in p.product_id.packaging_ids:
                     if i.df_sku_webship != False:
@@ -348,18 +346,15 @@ class WebShipHandler:
 
         sQuery = None
         for s in skus:
-            encoded_sku = quote(str(s), safe='')
             if sQuery == None:
-                sQuery = 'sku='+encoded_sku
+                sQuery = 'sku='+str(s)
             else:
-                sQuery = sQuery + ','+encoded_sku
+                sQuery = sQuery + ','+str(s)
 
         print(sQuery)
 
         _logger.info('Query for skus: ' + sQuery)
 
-        full_url = self.baseUrl + 'products?' + sQuery + '&detail=low'
-        _logger.info('Full Webship URL for Postman: ' + full_url)
 
         allRecords = self.fetchAll('products?' + sQuery, 'low', None)
         print(allRecords)
@@ -622,7 +617,7 @@ class WebShipHandler:
         print(picking)
         for i in picking.move_ids:
             print(i.product_id.default_code)
-            if i.product_id.df_product_do_not_send_webship == True or i.product_id.default_code == False:
+            if i.product_id.df_product_do_not_send_webship == True:
                 continue
             sOutput = {'productObj': i.product_id, 'type':i.product_id.type, 'default_code':i.product_id.default_code, 'product_id':i.product_id.id, 'quantity':i.product_uom_qty}
 
@@ -1095,7 +1090,7 @@ class WebShipHandler:
 
         for i in sOutput['mainList']:
             print('--')
-            print('*' + i['default_code'] + '*')
+            print('*' + str(i['default_code']) + '*')
             print(i['WSku'])
             print('--')
             if i['default_code'] != False and i['default_code'] != None and i['WSku'] == None:
@@ -1887,6 +1882,10 @@ class WebShipHandler:
                 if not sku:
                     continue
 
+                # Skip composed products — only basic products carry physical stock
+                if item.get("type") == "composed":
+                    continue
+
                 # Find product by SKU
                 product = Product.search(
                     [("default_code", "=", sku)],
@@ -1907,7 +1906,32 @@ class WebShipHandler:
                 ])
 
                 if not quants:
-                    continue
+                    # Only storable products can have stock.quant lines
+                    if not product.is_storable:
+                        continue
+
+                    # Try to find a Webship location matching this company_id
+                    webship_location = self.env["stock.location"].search([
+                        ("df_is_webship_location", "=", True),
+                        ("usage", "=", "internal"),
+                        ("df_warehouse_id_webship", "=", company_id),
+                    ], limit=1)
+
+                    # Fallback: any Webship internal location
+                    if not webship_location:
+                        webship_location = self.env["stock.location"].search([
+                            ("df_is_webship_location", "=", True),
+                            ("usage", "=", "internal"),
+                        ], limit=1)
+
+                    if not webship_location:
+                        continue
+
+                    quants = StockQuant.create({
+                        "product_id": product.id,
+                        "location_id": webship_location.id,
+                        "quantity": 0.0,
+                    })
 
                 quants.write({
                     "df_webship_totalstock": total,
