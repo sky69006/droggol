@@ -327,8 +327,8 @@ class WebShipHandler:
         for p in picking.move_ids:
             if p.product_id.df_product_do_not_send_webship == True or p.product_id.default_code == False:
                 continue
-            if p.product_id.code != False:
-                skus.append(p.product_id.code)
+            if p.product_id.default_code != False:
+                skus.append(p.product_id.default_code)
             if hasattr(p.product_id, "packaging_ids") and p.product_id.packaging_ids:
                 for i in p.product_id.packaging_ids:
                     if i.df_sku_webship != False:
